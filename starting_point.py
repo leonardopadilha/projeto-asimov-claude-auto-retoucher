@@ -3,6 +3,7 @@ from PIL import Image
 from PIL import ImageDraw
 import torch
 
+# Arquivo modelo do moondream
 # Load the model
 model = AutoModelForCausalLM.from_pretrained(
     "moondream/moondream3-preview",

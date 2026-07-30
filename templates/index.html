@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Retouch AI</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2/dist/iconify-icon.min.js"></script>
+<style>
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #020205;
+  overflow: hidden;
+}
+.font-mono { font-family: 'Space Mono', monospace; }
+
+/* Glass Effect */
+.glass-panel {
+  background: linear-gradient(165deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.03) 40%, rgba(255,255,255,0.01) 100%);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255,255,255,0.2);
+  border-left: 1px solid rgba(255,255,255,0.15);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 20px 60px -10px rgba(0,0,0,0.6), inset 0 0 40px rgba(255,255,255,0.02);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Blobs */
+.blob {
+  position: absolute; border-radius: 50%;
+  filter: blur(90px); opacity: 0.6; z-index: -1;
+  animation: drift 10s infinite alternate ease-in-out;
+}
+.blob-1 { background: #4f46e5; width: 600px; height: 600px; top: -10%; left: -10%; }
+.blob-2 { background: #db2777; width: 500px; height: 500px; bottom: -10%; right: -5%; animation-delay: -5s; }
+.blob-3 { background: #0ea5e9; width: 400px; height: 400px; top: 40%; left: 30%; opacity: 0.3; }
+
+@keyframes drift {
+  0%   { transform: translate(0, 0); }
+  100% { transform: translate(30px, 50px); }
+}
+
+.text-glow { text-shadow: 0 0 40px rgba(255,255,255,0.3); }
+
+/* Icon button */
+.icon-btn {
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.icon-btn:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.5s ease-out forwards; }
+
+.feature-card {
+  opacity: 0; transform: translateY(30px);
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.feature-card.visible { opacity: 1; transform: translateY(0); }
+
+/* Upload zone */
+.upload-zone {
+  border: 2px dashed rgba(255,255,255,0.12);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: rgba(99,102,241,0.55);
+  background: rgba(99,102,241,0.04);
+  box-shadow: 0 0 40px -10px rgba(99,102,241,0.2);
+}
+
+/* Point markers */
+.point-marker {
+  position: absolute;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 10;
+  user-select: none;
+}
+.point-marker.essencial {
+  background: rgba(244,63,94,0.9);
+  border: 2px solid rgba(251,113,133,0.8);
+  color: white;
+  box-shadow: 0 0 16px rgba(244,63,94,0.55);
+}
+.point-marker.recomendado {
+  background: rgba(99,102,241,0.9);
+  border: 2px solid rgba(129,140,248,0.8);
+  color: white;
+  box-shadow: 0 0 16px rgba(99,102,241,0.55);
+}
+.point-marker.opcional {
+  background: rgba(100,116,139,0.85);
+  border: 2px solid rgba(148,163,184,0.7);
+  color: white;
+  box-shadow: 0 0 16px rgba(100,116,139,0.4);
+}
+.point-marker:hover, .point-marker.active {
+  transform: translate(-50%, -50%) scale(1.45);
+  z-index: 20;
+}
+@keyframes pulse-ring {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2.8); opacity: 0; }
+}
+.point-marker.pulsing::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+
+/* Marker tooltip (fixed, managed via JS) */
+.marker-tooltip {
+  position: fixed;
+  z-index: 9999;
+  width: 256px;
+  background: rgba(5,5,10,0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(255,255,255,0.18);
+  border-left: 1px solid rgba(255,255,255,0.13);
+  border-radius: 18px;
+  padding: 14px 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  transform: translateY(6px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 0 1px rgba(0,0,0,0.3);
+}
+.marker-tooltip.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Report cards */
+.report-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+  padding: 14px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+.report-card:hover {
+  background: rgba(255,255,255,0.045);
+  border-color: rgba(255,255,255,0.09);
+}
+.report-card.highlighted-essencial {
+  border-color: rgba(244,63,94,0.35);
+  background: rgba(244,63,94,0.04);
+  box-shadow: 0 0 20px -5px rgba(244,63,94,0.15);
+}
+.report-card.highlighted-recomendado {
+  border-color: rgba(99,102,241,0.35);
+  background: rgba(99,102,241,0.04);
+  box-shadow: 0 0 20px -5px rgba(99,102,241,0.15);
+}
+.report-card.highlighted-opcional {
+  border-color: rgba(100,116,139,0.35);
+  background: rgba(100,116,139,0.04);
+}
+
+/* Loading spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.spinner { animation: spin 0.9s linear infinite; }
+
+/* Screen */
+.screen { transition: opacity 0.35s ease; }
+.screen.hidden { display: none !important; }
+
+/* History cards */
+.history-card {
+  flex-shrink: 0;
+  width: 160px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+.history-card:hover {
+  background: rgba(255,255,255,0.055);
+  border-color: rgba(255,255,255,0.13);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px -8px rgba(0,0,0,0.5);
+}
+.history-card .delete-btn {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  z-index: 5;
+}
+.history-card:hover .delete-btn { opacity: 1; }
+.history-card .delete-btn:hover { background: rgba(244,63,94,0.7); border-color: rgba(244,63,94,0.5); }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.history-strip-enter { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+</style>
+</head>
+
+<body class="h-screen w-full flex items-center justify-center relative selection:bg-indigo-500/30">
+
+<!-- Background ambience -->
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+<div class="fixed inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-150 contrast-150 pointer-events-none mix-blend-overlay"></div>
+<div class="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none"></div>
+
+<!-- Main container -->
+<div class="relative w-[96vw] max-w-[1700px] h-[94vh]">
+<div class="glass-panel w-full h-full rounded-[3rem] relative overflow-hidden" id="main-container">
+  <div class="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none z-0"></div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 1 — UPLOAD
+  ══════════════════════════════════════ -->
+  <div id="screen-upload" class="screen absolute inset-0 flex flex-col z-10">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-10 py-7 border-b border-white/[0.06] flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(255,255,255,0.3)]">
+          <iconify-icon class="text-black" icon="solar:magic-stick-3-bold" width="22"></iconify-icon>
+        </div>
+        <span class="text-xl text-white font-medium tracking-tight">Retouch <span class="text-white/40">AI</span></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- History toggle button -->
+        <button id="history-toggle-btn" onclick="toggleHistoryPanel()" class="icon-btn hidden items-center gap-2 px-4 py-2 rounded-full text-white/60 hover:text-white text-xs font-mono">
+          <iconify-icon icon="solar:history-linear" width="16"></iconify-icon>
+          <span>Histórico</span>
+          <span id="history-badge" class="w-5 h-5 rounded-full bg-indigo-500 text-white text-[10px] font-bold flex items-center justify-center"></span>
+        </button>
+        <div class="flex items-center gap-2 bg-black/30 px-4 py-2 rounded-full border border-white/[0.06]">
+          <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)] animate-pulse"></div>
+          <span class="text-xs font-mono text-emerald-400/80 tracking-widest uppercase">Sistema ativo</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Main center content -->
+    <div class="flex-1 flex flex-col items-center justify-center px-10 pb-6 gap-0 overflow-hidden">
+
+      <!-- Hero text -->
+      <div class="text-center mb-10 feature-card">
+        <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-indigo-300 text-[10px] font-mono tracking-widest uppercase">Análise de retoque com IA</span>
+        <h1 class="mt-5 text-5xl lg:text-6xl text-white font-medium tracking-tighter text-glow leading-[1.1]">Retoque com<br/><span class="text-white/40">Inteligência Artificial</span></h1>
+        <p class="mt-4 text-white/40 text-sm font-light max-w-md mx-auto leading-relaxed">Faça o upload de uma foto e nossa IA analisa e sugere os retoques ideais para o seu trabalho fotográfico.</p>
+      </div>
+
+      <!-- Upload zone -->
+      <div id="upload-zone" class="upload-zone w-full max-w-2xl rounded-3xl p-10 flex flex-col items-center gap-6 cursor-pointer feature-card" style="transition-delay:0.1s;" onclick="triggerFileInput()">
+
+        <!-- Default state -->
+        <div id="upload-default" class="flex flex-col items-center gap-5">
+          <div class="w-20 h-20 rounded-[1.5rem] bg-white/[0.03] border border-white/10 flex items-center justify-center group-hover:bg-white/[0.06] transition-colors">
+            <iconify-icon class="text-white/25" icon="solar:upload-minimalistic-linear" width="38"></iconify-icon>
+          </div>
+          <div class="text-center">
+            <div class="text-white/70 font-medium mb-1">Arraste sua foto aqui</div>
+            <div class="text-white/30 text-sm font-mono">ou clique para selecionar</div>
+          </div>
+          <div class="flex gap-2">
+            <span class="px-2 py-1 rounded bg-white/[0.03] border border-white/10 text-white/35 text-[10px] font-mono">JPG</span>
+            <span class="px-2 py-1 rounded bg-white/[0.03] border border-white/10 text-white/35 text-[10px] font-mono">JPEG</span>
+            <span class="px-2 py-1 rounded bg-white/[0.03] border border-white/10 text-white/35 text-[10px] font-mono">PNG</span>
+            <span class="px-2 py-1 rounded bg-white/[0.03] border border-white/10 text-white/35 text-[10px] font-mono">WEBP</span>
+          </div>
+        </div>
+
+        <!-- Preview state (hidden until file chosen) -->
+        <div id="preview-container" class="hidden w-full flex flex-col items-center gap-4">
+          <img id="preview-img" src="" alt="Preview" class="max-h-52 rounded-2xl object-contain shadow-2xl border border-white/10"/>
+          <div class="flex items-center gap-2">
+            <iconify-icon class="text-emerald-400" icon="solar:check-circle-bold" width="16"></iconify-icon>
+            <span id="preview-filename" class="font-mono text-xs text-white/50"></span>
+          </div>
+          <button onclick="resetFile(event)" class="text-white/30 hover:text-white/70 text-xs font-mono transition-colors flex items-center gap-1">
+            <iconify-icon icon="solar:restart-linear" width="14"></iconify-icon> Trocar foto
+          </button>
+        </div>
+      </div>
+
+      <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileSelect(event)"/>
+
+      <!-- Analyze button -->
+      <button id="analyze-btn" onclick="analyzeImage()" disabled
+        class="mt-8 px-12 py-3.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-indigo-500 feature-card"
+        style="transition-delay:0.2s;">
+        <span class="flex items-center gap-2">
+          <iconify-icon icon="solar:magic-stick-3-linear" width="18"></iconify-icon>
+          Analisar Foto
+        </span>
+      </button>
+    </div><!-- /main center content -->
+
+    <!-- History strip (bottom, hidden when empty) -->
+    <div id="history-strip" class="hidden flex-shrink-0 border-t border-white/[0.05] px-10 py-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <iconify-icon icon="solar:history-linear" class="text-white/30" width="16"></iconify-icon>
+          <span class="text-white/40 text-xs font-mono uppercase tracking-widest">Análises anteriores</span>
+          <span id="history-count" class="font-mono text-[10px] text-white/20"></span>
+        </div>
+        <button onclick="toggleHistoryPanel()" class="text-white/25 hover:text-white/60 transition-colors">
+          <iconify-icon icon="solar:alt-arrow-down-linear" id="history-chevron" width="16"></iconify-icon>
+        </button>
+      </div>
+      <div id="history-cards" class="flex gap-4 overflow-x-auto no-scrollbar pb-1">
+        <!-- Cards injected by JS -->
+      </div>
+    </div>
+
+    </div><!-- /content wrapper -->
+
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="hidden absolute inset-0 bg-black/55 backdrop-blur-sm rounded-[3rem] flex flex-col items-center justify-center gap-6 z-50">
+      <div class="w-16 h-16 rounded-full border-2 border-white/10 border-t-indigo-500 spinner"></div>
+      <div class="text-center">
+        <div class="text-white font-medium mb-1.5">Analisando sua foto...</div>
+        <div class="text-white/40 text-sm font-mono">Isso pode levar alguns segundos</div>
+      </div>
+      <div class="flex gap-2">
+        <span class="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-mono animate-pulse">IA processando</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       SCREEN 2 — RESULTS
+  ══════════════════════════════════════ -->
+  <div id="screen-results" class="screen hidden absolute inset-0 flex flex-col z-10">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-8 py-5 border-b border-white/[0.06] flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button onclick="goBack()" class="icon-btn w-9 h-9 rounded-xl flex items-center justify-center text-white/60 hover:text-white cursor-pointer">
+          <iconify-icon icon="solar:arrow-left-linear" width="18"></iconify-icon>
+        </button>
+        <div class="w-px h-5 bg-white/10"></div>
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-[0_0_16px_rgba(255,255,255,0.3)]">
+            <iconify-icon class="text-black" icon="solar:magic-stick-3-bold" width="18"></iconify-icon>
+          </div>
+          <span class="text-base text-white font-medium tracking-tight">Retouch <span class="text-white/40">AI</span></span>
+        </div>
+      </div>
+      <div id="results-summary" class="hidden md:flex items-center gap-2">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+
+    <!-- Split layout -->
+    <div class="flex-1 flex overflow-hidden">
+
+      <!-- Left panel: Photo with markers -->
+      <div class="flex-1 relative flex items-center justify-center overflow-hidden bg-black/25 p-6">
+        <!-- ambient glow behind image -->
+        <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-pink-500/5 pointer-events-none"></div>
+        <div id="photo-wrapper" style="position:relative; display:inline-block; line-height:0;">
+          <img id="result-img" src="" alt="Foto analisada"
+            style="display:block; max-height:calc(94vh - 86px); max-width:100%; border-radius:1rem; border:1px solid rgba(255,255,255,0.1); box-shadow:0 0 60px rgba(0,0,0,0.8);"
+            onload="onImageLoad()"/>
+          <!-- Markers injected here -->
+        </div>
+      </div>
+
+      <!-- Right panel: Laudo -->
+      <div class="w-[22rem] border-l border-white/[0.06] flex flex-col overflow-hidden flex-shrink-0">
+
+        <!-- Panel header -->
+        <div class="px-6 pt-6 pb-4 border-b border-white/[0.06] flex-shrink-0">
+          <div class="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-0.5">Relatório de análise</div>
+          <h2 class="text-xl text-white font-medium tracking-tight text-glow">Laudo</h2>
+        </div>
+
+        <!-- Scrollable report list -->
+        <div id="report-list" class="flex-1 overflow-y-auto no-scrollbar px-4 py-4 space-y-5">
+          <!-- Filled by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /glass-panel -->
+</div><!-- /outer container -->
+
+<!-- Tooltip (singleton, portalled to body) -->
+<div id="global-tooltip" class="marker-tooltip">
+  <div class="flex items-center gap-2 mb-2.5">
+    <div id="tooltip-dot" class="w-2 h-2 rounded-full flex-shrink-0"></div>
+    <span id="tooltip-relevance" class="font-mono text-[10px] uppercase tracking-widest"></span>
+  </div>
+  <div id="tooltip-description" class="text-white/85 text-sm font-medium leading-snug mb-3"></div>
+  <div class="border-t border-white/[0.06] pt-2.5">
+    <div class="font-mono text-[10px] text-white/30 uppercase tracking-widest mb-1">Técnica</div>
+    <div id="tooltip-technique" class="text-white/55 text-xs leading-relaxed"></div>
+  </div>
+</div>
+
+<script>
+  // ─── State ───────────────────────────────────────────────────────────────
+  let selectedFile  = null;
+  let analysisData  = null;   // { report: ReportItem[] }
+  let imageFilename = null;
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+  const $ = (id) => document.getElementById(id);
+
+  function relevanceClass(r) {
+    return r === 'ESSENCIAL' ? 'essencial' : r === 'RECOMENDADO' ? 'recomendado' : 'opcional';
+  }
+
+  const RELEVANCE_META = {
+    ESSENCIAL:   { label: 'Essencial',   dotBg: '#f43f5e', badgeCls: 'text-rose-300 bg-rose-500/10 border-rose-500/20',   dotCls: 'bg-rose-500',   hlCls: 'highlighted-essencial' },
+    RECOMENDADO: { label: 'Recomendado', dotBg: '#6366f1', badgeCls: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/20', dotCls: 'bg-indigo-500', hlCls: 'highlighted-recomendado' },
+    OPCIONAL:    { label: 'Opcional',    dotBg: '#64748b', badgeCls: 'text-slate-300 bg-slate-500/10 border-slate-500/20',   dotCls: 'bg-slate-500',  hlCls: 'highlighted-opcional' },
+  };
+
+  // ─── Upload screen ────────────────────────────────────────────────────────
+  function triggerFileInput() { $('file-input').click(); }
+
+  function resetFile(e) {
+    e.stopPropagation();
+    selectedFile = null;
+    $('file-input').value = '';
+    $('preview-container').classList.add('hidden');
+    $('upload-default').classList.remove('hidden');
+    $('analyze-btn').disabled = true;
+  }
+
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) setFile(file);
+  }
+
+  function setFile(file) {
+    selectedFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      $('preview-img').src = e.target.result;
+      $('preview-filename').textContent = file.name;
+      $('upload-default').classList.add('hidden');
+      $('preview-container').classList.remove('hidden');
+      $('analyze-btn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Drag & drop
+  const zone = $('upload-zone');
+  zone.addEventListener('dragover',  (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', ()  => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) setFile(file);
+  });
+
+  // ─── Analysis ────────────────────────────────────────────────────────────
+  async function analyzeImage() {
+    if (!selectedFile) return;
+    $('loading-overlay').classList.remove('hidden');
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    try {
+      const res = await fetch('/analyze', { method: 'POST', body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`HTTP ${res.status}: ${text}`);
+      }
+      analysisData  = await res.json();
+      imageFilename = selectedFile.name;
+      showResults();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao analisar a imagem:\n' + err.message);
+    } finally {
+      $('loading-overlay').classList.add('hidden');
+    }
+  }
+
+  // ─── Results screen ───────────────────────────────────────────────────────
+  function showResults() {
+    $('screen-upload').classList.add('hidden');
+    $('screen-results').classList.remove('hidden');
+
+    const img = $('result-img');
+    img.src = '/uploads/' + encodeURIComponent(imageFilename);
+
+    // If image is already cached and complete, onload won't fire again
+    if (img.complete && img.naturalWidth > 0) {
+      requestAnimationFrame(() => requestAnimationFrame(() => renderMarkers()));
+    }
+
+    renderReport();
+    renderSummary();
+
+    // Refresh history list in background so new entry appears when user goes back
+    loadHistory();
+  }
+
+  function goBack() {
+    $('screen-results').classList.add('hidden');
+    $('screen-upload').classList.remove('hidden');
+    clearMarkers();
+    hideTooltip();
+  }
+
+  function onImageLoad() {
+    // Two rAF frames to ensure the browser has painted and computed layout
+    requestAnimationFrame(() => requestAnimationFrame(() => renderMarkers()));
+  }
+
+  // ─── Markers ─────────────────────────────────────────────────────────────
+  function clearMarkers() {
+    $('photo-wrapper').querySelectorAll('.point-marker').forEach(m => m.remove());
+  }
+
+  function renderMarkers() {
+    clearMarkers();
+    const wrapper = $('photo-wrapper');
+
+    analysisData.report.forEach((item, i) => {
+      const marker = document.createElement('div');
+      marker.className    = `point-marker ${relevanceClass(item.relevance)}`;
+      marker.textContent  = i + 1;
+      marker.style.left   = (item.x_point * 100) + '%';
+      marker.style.top    = (item.y_point * 100) + '%';
+      marker.dataset.index = i;
+
+      marker.addEventListener('mouseenter', (e) => {
+        showTooltip(e, item, marker);
+        pulseMarker(i);
+        highlightCard(i, item.relevance);
+      });
+      marker.addEventListener('mouseleave', () => {
+        hideTooltip();
+        unpulseMarker(i);
+        clearHighlight();
+      });
+      marker.addEventListener('click', () => scrollToCard(i));
+
+      wrapper.appendChild(marker);
+    });
+  }
+
+  // Re-render markers if window resized
+  window.addEventListener('resize', () => {
+    if (!$('screen-results').classList.contains('hidden') && analysisData) {
+      renderMarkers();
+    }
+  });
+
+  // ─── Tooltip ─────────────────────────────────────────────────────────────
+  function showTooltip(e, item, markerEl) {
+    const tooltip = $('global-tooltip');
+    const meta    = RELEVANCE_META[item.relevance] || RELEVANCE_META.OPCIONAL;
+
+    $('tooltip-dot').style.background = meta.dotBg;
+    $('tooltip-relevance').textContent = meta.label;
+    $('tooltip-relevance').style.color = meta.dotBg;
+    $('tooltip-description').textContent = item.description;
+    $('tooltip-technique').textContent   = item.photoshop_technique;
+
+    // Position: above the marker, centered
+    const rect    = markerEl.getBoundingClientRect();
+    const ttW     = 256;
+    let left = rect.left + rect.width / 2 - ttW / 2;
+    let top  = rect.top  - 12;   // 12px gap above marker
+
+    // Keep inside viewport
+    if (left < 8) left = 8;
+    if (left + ttW > window.innerWidth - 8) left = window.innerWidth - ttW - 8;
+
+    tooltip.style.left      = left + 'px';
+    tooltip.style.top       = top  + 'px';
+    tooltip.style.transform = 'translateY(-100%)';
+    tooltip.classList.add('show');
+  }
+
+  function hideTooltip() {
+    $('global-tooltip').classList.remove('show');
+  }
+
+  // ─── Marker pulse & highlight ────────────────────────────────────────────
+  function pulseMarker(index) {
+    const m = document.querySelector(`.point-marker[data-index="${index}"]`);
+    if (m) { m.classList.add('pulsing', 'active'); }
+  }
+  function unpulseMarker(index) {
+    const m = document.querySelector(`.point-marker[data-index="${index}"]`);
+    if (m) { m.classList.remove('pulsing', 'active'); }
+  }
+  function highlightCard(index, relevance) {
+    const meta = RELEVANCE_META[relevance] || RELEVANCE_META.OPCIONAL;
+    document.querySelectorAll('.report-card').forEach((c, i) => {
+      c.classList.remove('highlighted-essencial', 'highlighted-recomendado', 'highlighted-opcional');
+      if (parseInt(c.dataset.index) === index) c.classList.add(meta.hlCls);
+    });
+  }
+  function clearHighlight() {
+    document.querySelectorAll('.report-card').forEach(c => {
+      c.classList.remove('highlighted-essencial', 'highlighted-recomendado', 'highlighted-opcional');
+    });
+  }
+  function scrollToCard(index) {
+    const card = document.querySelector(`.report-card[data-index="${index}"]`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ─── Report rendering ─────────────────────────────────────────────────────
+  function renderReport() {
+    const list   = $('report-list');
+    list.innerHTML = '';
+    const report = analysisData.report;
+
+    const order  = ['ESSENCIAL', 'RECOMENDADO', 'OPCIONAL'];
+    const groups = {};
+    order.forEach(k => { groups[k] = []; });
+    report.forEach((item, i) => { if (groups[item.relevance]) groups[item.relevance].push({ item, globalIndex: i }); });
+
+    order.forEach((key) => {
+      const entries = groups[key];
+      if (entries.length === 0) return;
+      const meta = RELEVANCE_META[key];
+
+      const section = document.createElement('div');
+      section.className = 'space-y-2';
+
+      // Group label
+      const label = document.createElement('div');
+      label.className = 'flex items-center gap-2 px-1 mb-3';
+      label.innerHTML = `
+        <span class="px-2 py-0.5 rounded text-xs font-mono border ${meta.badgeCls}">${meta.label}</span>
+        <span class="font-mono text-[10px] text-white/20">${entries.length} item${entries.length !== 1 ? 's' : ''}</span>
+      `;
+      section.appendChild(label);
+
+      // Cards
+      entries.forEach(({ item, globalIndex }) => {
+        const card = document.createElement('div');
+        card.className = 'report-card';
+        card.dataset.index = globalIndex;
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center ${meta.dotCls} text-white text-[10px] font-mono font-bold mt-0.5">${globalIndex + 1}</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-white/80 text-sm font-medium leading-snug mb-2">${item.description}</p>
+              <div class="flex items-start gap-1.5">
+                <iconify-icon icon="solar:magic-stick-3-linear" class="text-white/25 flex-shrink-0 mt-0.5" width="12"></iconify-icon>
+                <span class="text-white/40 text-xs leading-relaxed">${item.photoshop_technique}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.addEventListener('mouseenter', () => {
+          highlightCard(globalIndex, item.relevance);
+          pulseMarker(globalIndex);
+        });
+        card.addEventListener('mouseleave', () => {
+          clearHighlight();
+          unpulseMarker(globalIndex);
+        });
+        card.addEventListener('click', () => scrollToCard(globalIndex));
+
+        section.appendChild(card);
+      });
+
+      list.appendChild(section);
+    });
+  }
+
+  function renderSummary() {
+    const report = analysisData.report;
+    const ess    = report.filter(r => r.relevance === 'ESSENCIAL').length;
+    const rec    = report.filter(r => r.relevance === 'RECOMENDADO').length;
+    const opt    = report.filter(r => r.relevance === 'OPCIONAL').length;
+    const el     = $('results-summary');
+    el.innerHTML = `
+      ${ess > 0 ? `<span class="text-xs font-mono text-rose-300 bg-rose-500/10 border border-rose-500/20 px-2.5 py-1 rounded">${ess} Essencial${ess !== 1 ? 'is' : ''}</span>` : ''}
+      ${rec > 0 ? `<span class="text-xs font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded">${rec} Recomendado${rec !== 1 ? 's' : ''}</span>` : ''}
+      ${opt > 0 ? `<span class="text-xs font-mono text-slate-300 bg-slate-500/10 border border-slate-500/20 px-2.5 py-1 rounded">${opt} Opcional${opt !== 1 ? 'is' : ''}</span>` : ''}
+    `;
+    el.classList.remove('hidden');
+  }
+
+  // ─── Scroll reveal for upload screen ────────────────────────────────────
+  const uploadObserver = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.feature-card').forEach(el => uploadObserver.observe(el));
+  setTimeout(() => document.querySelectorAll('.feature-card').forEach(el => el.classList.add('visible')), 100);
+
+  // ─── History ─────────────────────────────────────────────────────────────
+  let historyItems  = [];
+  let historyOpen   = true;
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/history');
+      historyItems = await res.json();
+    } catch (e) {
+      historyItems = [];
+    }
+    renderHistoryStrip();
+  }
+
+  function renderHistoryStrip() {
+    const strip   = $('history-strip');
+    const cards   = $('history-cards');
+    const badge   = $('history-badge');
+    const toggleBtn = $('history-toggle-btn');
+    const countEl = $('history-count');
+
+    if (historyItems.length === 0) {
+      strip.classList.add('hidden');
+      toggleBtn.classList.add('hidden');
+      toggleBtn.classList.remove('flex');
+      return;
+    }
+
+    // Show toggle button in header
+    toggleBtn.classList.remove('hidden');
+    toggleBtn.classList.add('flex');
+    badge.textContent = historyItems.length;
+    countEl.textContent = `${historyItems.length} análise${historyItems.length !== 1 ? 's' : ''}`;
+
+    // Build cards
+    cards.innerHTML = '';
+    historyItems.forEach((item, idx) => {
+      const { filename, analyzed_at, result } = item;
+      const report = result?.report || [];
+      const ess    = report.filter(r => r.relevance === 'ESSENCIAL').length;
+      const rec    = report.filter(r => r.relevance === 'RECOMENDADO').length;
+      const opt    = report.filter(r => r.relevance === 'OPCIONAL').length;
+      const date   = new Date(analyzed_at);
+      const dateStr = date.toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+      const timeStr = date.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+
+      const card = document.createElement('div');
+      card.className = 'history-card history-strip-enter';
+      card.style.animationDelay = (idx * 0.05) + 's';
+      card.innerHTML = `
+        <!-- Delete button -->
+        <button class="delete-btn" onclick="deleteHistoryItem(event, '${filename}')">
+          <iconify-icon icon="solar:close-linear" class="text-white" width="11"></iconify-icon>
+        </button>
+        <!-- Thumbnail -->
+        <div class="w-full h-24 overflow-hidden bg-black/30">
+          <img src="/uploads/${encodeURIComponent(filename)}"
+               alt="${filename}"
+               class="w-full h-full object-cover"
+               onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full flex items-center justify-center\\'><iconify-icon icon=\\'solar:gallery-minimalistic-linear\\' class=\\'text-white/20\\' width=\\'28\\'></iconify-icon></div>'"
+          />
+        </div>
+        <!-- Info -->
+        <div class="p-3">
+          <div class="text-white/70 text-[11px] font-medium truncate mb-1" title="${filename}">${filename}</div>
+          <div class="font-mono text-[9px] text-white/25 mb-2">${dateStr} · ${timeStr}</div>
+          <div class="flex flex-wrap gap-1">
+            ${ess > 0 ? `<span class="text-[9px] font-mono text-rose-300 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded">${ess} Ess.</span>` : ''}
+            ${rec > 0 ? `<span class="text-[9px] font-mono text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded">${rec} Rec.</span>` : ''}
+            ${opt > 0 ? `<span class="text-[9px] font-mono text-slate-300 bg-slate-500/10 border border-slate-500/20 px-1.5 py-0.5 rounded">${opt} Opt.</span>` : ''}
+            ${report.length === 0 ? `<span class="text-[9px] font-mono text-white/20">sem dados</span>` : ''}
+          </div>
+        </div>
+      `;
+      card.addEventListener('click', () => openHistoryItem(item));
+      cards.appendChild(card);
+    });
+
+    // Show or hide strip based on open state
+    if (historyOpen) {
+      strip.classList.remove('hidden');
+    } else {
+      strip.classList.add('hidden');
+    }
+  }
+
+  function toggleHistoryPanel() {
+    historyOpen = !historyOpen;
+    const strip   = $('history-strip');
+    const chevron = $('history-chevron');
+    if (historyOpen) {
+      strip.classList.remove('hidden');
+      chevron.setAttribute('icon', 'solar:alt-arrow-down-linear');
+    } else {
+      strip.classList.add('hidden');
+      chevron.setAttribute('icon', 'solar:alt-arrow-up-linear');
+    }
+  }
+
+  function openHistoryItem(item) {
+    analysisData  = item.result;
+    imageFilename = item.filename;
+    showResults();
+  }
+
+  async function deleteHistoryItem(e, filename) {
+    e.stopPropagation();
+    try {
+      const res = await fetch('/history/' + encodeURIComponent(filename), { method: 'DELETE' });
+      if (!res.ok) throw new Error('Falha ao deletar');
+      historyItems = historyItems.filter(i => i.filename !== filename);
+      renderHistoryStrip();
+    } catch (err) {
+      alert('Erro ao deletar: ' + err.message);
+    }
+  }
+
+  // Load history on startup
+  loadHistory();
+</script>
+</body>
+</html>

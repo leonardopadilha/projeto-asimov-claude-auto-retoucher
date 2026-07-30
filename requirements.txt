@@ -1,0 +1,9 @@
+agno==2.8.5
+fal-client==1.0.0
+pillow==12.3.0
+python-dotenv==1.2.2
+transformers==5.14.1
+torch==2.13.0
+fastapi==0.141.1
+uvicorn==0.52.0
+python-multipart==0.0.32

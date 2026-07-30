@@ -46,7 +46,9 @@ Para cada item identificado, gere uma entrada com este formato:
 [PRIORIDADE] Área: Descrição do problema
 → Técnica sugerida: nome da técnica Photoshop
 → Observação: dica específica para este caso
+→ Localização do problema: a localização exata x e y de cada um dos problemas. Use suas ferramentas para isto!
 ```
+
 
 **Níveis de Prioridade:**
 - 🔴 **ESSENCIAL** — muito evidente, impacta diretamente a qualidade final

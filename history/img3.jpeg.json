@@ -1,0 +1,48 @@
+{
+  "filename": "img3.jpeg",
+  "analyzed_at": "2026-07-30T13:29:07.317975",
+  "result": {
+    "report": [
+      {
+        "description": "Presença de linhas finas e leves olheiras na região periorbital devido à iluminação solar direta.",
+        "relevance": "RECOMENDADO",
+        "photoshop_technique": "Dodge & Burn + Hue/Saturation localizado",
+        "query": "under-eye area with fine lines and dark circles",
+        "x_point": 0.45703125,
+        "y_point": 0.2236328125
+      },
+      {
+        "description": "Pequenas irregularidades de textura e poros visíveis na região da testa.",
+        "relevance": "RECOMENDADO",
+        "photoshop_technique": "Healing Brush / Frequency Separation (alta frequência)",
+        "query": "blemishes and texture on forehead",
+        "x_point": 0.427734375,
+        "y_point": 0.1728515625
+      },
+      {
+        "description": "Textura de pele acentuada e leve vermelhidão na área do joelho, exacerbada pelo ângulo da foto.",
+        "relevance": "ESSENCIAL",
+        "photoshop_technique": "Frequency Separation (baixa frequência) + Dodge & Burn",
+        "query": "rough skin texture and redness on the knee",
+        "x_point": 0.5078125,
+        "y_point": 0.8671875
+      },
+      {
+        "description": "Fios de cabelo desalinhados (stray hairs) cruzando o rosto e ombros devido ao vento.",
+        "relevance": "OPCIONAL",
+        "photoshop_technique": "Clone Stamp + Healing Brush",
+        "query": "stray hairs blowing in the wind across face and shoulders",
+        "x_point": 0.52734375,
+        "y_point": 0.2060546875
+      },
+      {
+        "description": "Inconsistência de tom de pele e textura visível no antebraço.",
+        "relevance": "RECOMENDADO",
+        "photoshop_technique": "Frequency Separation + Color Balance",
+        "query": "texture and uneven skin tone on the arm",
+        "x_point": 0.353515625,
+        "y_point": 0.5703125
+      }
+    ]
+  }
+}
